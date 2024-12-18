@@ -16,3 +16,6 @@ buildNumber.properties
 /.classpath
 /.project
 /.settings
+/.factorypath
+/.idea
+/nb-configuration.xml
