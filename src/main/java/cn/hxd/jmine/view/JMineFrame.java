@@ -1,6 +1,11 @@
 package cn.hxd.jmine.view;
 
+import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.GridLayout;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
@@ -14,11 +19,12 @@ import javax.swing.DefaultComboBoxModel;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
-import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.SwingConstants;
 import javax.swing.SwingWorker;
+import javax.swing.border.EmptyBorder;
 
 import cn.hxd.jmine.domain.CustomLevelDialog;
 import cn.hxd.jmine.domain.Level;
@@ -37,13 +43,15 @@ public class JMineFrame extends javax.swing.JFrame {
 	private JLabel bombsLabel;
 	private JPanel minesPanel;
 	private JPanel controlPanel;
+	JLabel timerLabel ;
 	JComboBox<Level> levelComboBox;
 	private ArrayList<Mine> mines;
 	private HashSet<Integer> bombNumbers;
 	private Level[] levels ;
 	private Level level;
-	private int mineSize = 30;
+	private int mineSize = 36;
 	private long startTime = 0;
+	private int controlPanelHeight = 30;
 	transient Clip clip ;
 	/** Creates new form mainFrame */
 	public JMineFrame() {
@@ -64,7 +72,6 @@ public class JMineFrame extends javax.swing.JFrame {
 				e.printStackTrace();
 			}
 		}).start();
-		setResizable(false);
 		controlPanel = new  JPanel();
 		levelComboBox = new JComboBox<>();
 		bombsLabel = new  JLabel();
@@ -73,13 +80,28 @@ public class JMineFrame extends javax.swing.JFrame {
 
 		setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 		setTitle("扫雷");
-		setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
+		setCursor(new Cursor(java.awt.Cursor.DEFAULT_CURSOR));
 		setIconImage(getIconImage());
-
-		controlPanel.setPreferredSize(new java.awt.Dimension(270, 30));
-		controlPanel.setLayout(new java.awt.GridLayout(1, 0));
-
-		levelComboBox.setFont(new java.awt.Font("微软雅黑", 0, 12)); // NOI18N
+		setMinimumSize(new Dimension(mineSize* Level.LOW.getColumn(), 30+mineSize* Level.LOW.getRow()+ controlPanelHeight));
+		
+		controlPanel.setPreferredSize(new Dimension(0, controlPanelHeight));
+		controlPanel.setLayout(new GridLayout(1, 0));
+		
+		JPanel labelsPanel = new JPanel();
+		labelsPanel.setLayout(new GridLayout(1,0));
+		timerLabel = new JLabel("00:00");
+		timerLabel.setHorizontalAlignment(SwingConstants.LEFT);
+		timerLabel.setBorder(new EmptyBorder(0, 10, 0, 0));
+		labelsPanel.add(timerLabel);
+		
+		bombsLabel.setHorizontalAlignment(SwingConstants.CENTER);
+		bombsLabel.setText(Level.LOW.getBombCount()+"");
+		labelsPanel.add(bombsLabel);
+		controlPanel.add(labelsPanel);
+		
+		JPanel levelPanel = new JPanel();
+		levelPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
+		levelComboBox.setPreferredSize(new Dimension(80, controlPanelHeight));
 		levelComboBox.setModel( new DefaultComboBoxModel<>(levels));
 		levelComboBox.setRenderer((list, value, index, isSelected, cellHasFocus) -> {
 			JLabel label = new JLabel(value.getLabel());
@@ -96,26 +118,21 @@ public class JMineFrame extends javax.swing.JFrame {
 			System.out.println(evt);
 			levelChange((Level)levelComboBox.getSelectedItem());
 		});
-		controlPanel.add(levelComboBox);
-
-		bombsLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-		bombsLabel.setText("10");
-		bombsLabel.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
-		bombsLabel.setPreferredSize(new java.awt.Dimension(40, 15));
-		controlPanel.add(bombsLabel);
+		levelPanel.add(levelComboBox);
 
 		refreshButton.setIcon(new  ImageIcon(getClass().getResource("/images/fresh.png"))); // NOI18N
 		refreshButton.addActionListener(this::refreshMines);
-		controlPanel.add(refreshButton);
+		refreshButton.setPreferredSize(new Dimension(48, controlPanelHeight));
+		levelPanel.add(refreshButton);
 
-		getContentPane().add(controlPanel, java.awt.BorderLayout.SOUTH);
+		controlPanel.add(levelPanel);
+		getContentPane().add(controlPanel, BorderLayout.SOUTH);
 
 		// jPanel1.setSize(270, 270);
-		minesPanel.setFont(new java.awt.Font("Noto Sans CJK SC", 0, 10)); // NOI18N
-		minesPanel.setPreferredSize(new java.awt.Dimension(270, 270));
-		minesPanel.setLayout(new java.awt.GridLayout(9, 9, 1, 1));
+		
+		minesPanel.setLayout(new GridLayout(9, 9, 1, 1));
 
-		getContentPane().add(minesPanel, java.awt.BorderLayout.CENTER);
+		getContentPane().add(minesPanel, BorderLayout.CENTER);
 		newGame();
 		pack();
 
@@ -134,7 +151,7 @@ public class JMineFrame extends javax.swing.JFrame {
 					, Level.CUSTOM.getBombCount());
 			dialog.setVisible(true);
 			if(dialog.isOk()) {
-				this.level = new Level(Level.CUSTOM.getLabel(), dialog.getRows(), dialog.getCols(), dialog.getBombs());
+				this.level = new Level(Level.CUSTOM.getLabel(), dialog.getCols(), dialog.getRows(),  dialog.getBombs());
 			}else {
 				levelComboBox.setSelectedItem(oldLevel);
 				return;
@@ -169,6 +186,7 @@ public class JMineFrame extends javax.swing.JFrame {
 
 	private void win() {
 		long usedTime = System.currentTimeMillis() - startTime;
+		startTime = 0;
 		String usedTimeText = usedTime/1000+"秒";
 		if(usedTime>60*60*1000) {
 			usedTimeText = (usedTime/1000)/60/60+"小时"+(usedTime/1000)/60%60+"分"+(usedTime/1000)%60+"秒";
@@ -182,7 +200,25 @@ public class JMineFrame extends javax.swing.JFrame {
 		});
 	}
 	
+	private String formatTime(long mills) {
+		if(mills>60*60*1000) {
+			return (mills/1000)/60/60+":"+paddingTime((mills/1000)/60%60)+":"+paddingTime((mills/1000)%60);
+		}else if(mills>60*1000) {
+			return paddingTime((mills/1000)/60)+":"+paddingTime((mills/1000)%60);
+		}else {
+			return "00:"+paddingTime(mills/1000);
+		}
+	}
+	
+	private String paddingTime(long time) {
+		if(time>10) {
+			return ""+time;
+		}
+		return "0"+time;
+	}
+	
 	private void lose() {
+		startTime = 0;
 		playSound(FAILED_AUDIO);
 		JOptionPane.showMessageDialog(null, "你输了！");
 		mines.stream().forEach(m->{
@@ -197,11 +233,14 @@ public class JMineFrame extends javax.swing.JFrame {
 			protected Void doInBackground() throws Exception {
 				try {
 					AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(getClass().getResource(string));
-					if(clip.isOpen()) {
-						clip.close();
+					if(clip != null) {
+						
+						if(clip.isOpen()) {
+							clip.close();
+						}
+						clip.open(audioInputStream);
+						clip.start();
 					}
-					clip.open(audioInputStream);
-					clip.start();
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -238,17 +277,16 @@ public class JMineFrame extends javax.swing.JFrame {
 			
 		}).start();
 		startTime = 0;
-		getContentPane().removeAll();
 		int bombCount = level.getBombCount();
 		int cols = level.getColumn();
 		int rows = level.getRow();
 		bombsLabel.setText(bombCount + "");
-		controlPanel.setPreferredSize(new java.awt.Dimension(cols * mineSize, mineSize));
+		controlPanel.setPreferredSize(new Dimension(cols * mineSize, mineSize));
 		minesPanel.removeAll();
 		bombNumbers.clear();
 		mines.clear();
-		minesPanel.setPreferredSize(new java.awt.Dimension(cols * mineSize, rows * mineSize));
-		minesPanel.setLayout(new java.awt.GridLayout(rows, cols));
+		minesPanel.setPreferredSize(new Dimension(cols * mineSize, rows * mineSize));
+		minesPanel.setLayout(new GridLayout(rows, cols));
 
 		while (bombNumbers.size() < bombCount) {
 			bombNumbers.add((int) (Math.random() * rows * cols));
@@ -263,9 +301,9 @@ public class JMineFrame extends javax.swing.JFrame {
 				mine.addActionListener(e-> {
 					mineClicked((Mine)e.getSource());
 				});
-				mine.addMouseListener(new java.awt.event.MouseAdapter() {
+				mine.addMouseListener(new MouseAdapter() {
 					@Override
-					public void mouseClicked(java.awt.event.MouseEvent evt) {
+					public void mouseClicked(MouseEvent evt) {
 						Mine m = (Mine)evt.getSource();
 						if(evt.getButton() == MouseEvent.BUTTON3 && m.isEnabled()) {
 							rightMouseClicked(m);
@@ -277,6 +315,17 @@ public class JMineFrame extends javax.swing.JFrame {
 						super.mousePressed(e);
 						if(startTime == 0) {
 							startTime = System.currentTimeMillis();
+							new Thread(()->{
+								while(startTime>0) {
+									timerLabel.setText(formatTime(System.currentTimeMillis()-startTime));
+									try {
+										Thread.sleep(1000L);
+									} catch (InterruptedException e1) {
+										e1.printStackTrace();
+									}
+								}
+								timerLabel.setText(formatTime(startTime));
+							}).start();
 						}
 						Mine m = (Mine)e.getSource();
 						if(m.getStatus() == MineStatus.OPENED ) {
@@ -300,8 +349,6 @@ public class JMineFrame extends javax.swing.JFrame {
 				minesPanel.add(mine);
 			}
 		}
-		getContentPane().add(minesPanel, java.awt.BorderLayout.CENTER);
-		getContentPane().add(controlPanel, java.awt.BorderLayout.SOUTH);
 		pack();
 	}
 
